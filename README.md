@@ -1,40 +1,40 @@
-# multi-dc-c7a-k8s
+# multi-dc-db-k8s
 
 These instructions are tested on Kubernetes version 1.8.4 and 1.8.5. StatefulSets in 1.8.x are in beta. In Kubernetes version 1.9, StatefulSets are stable GA. While same instructions work for 1.9, you are encouraged to change the StatefulSet api version to stable (apps/v1) or use the yaml files from 1.9 folder.
 
 kubectl get nodes
 <pre>
 NAME       STATUS    ROLES     AGE       VERSION
-kube-vm0   Ready     master    7m        v1.8.4
-kube-vm1   Ready     <none>    3m        v1.8.4
+kubenode1   Ready     master    7m        v1.8.4
+kubenode2   Ready     <none>    3m        v1.8.4
 </pre>
 
-# kubectl label nodes kube-vm0 dc=DC1
-node "kube-vm0" labeled
-# kubectl label nodes kube-vm1 dc=DC2
-node "kube-vm1" labeled
+# kubectl label nodes kubenode1 dc=DC1
+node "kubenode1" labeled
+# kubectl label nodes kubenode2 dc=DC2
+node "kubenode2" labeled
 
 
 # kubectl get nodes --show-labels
 <pre>
 NAME       STATUS    ROLES     AGE       VERSION   LABELS
-kube-vm0   Ready     master    12m       v1.8.4    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,dc=DC1,kubernetes.io/hostname=kube-vm0,node-role.kubernetes.io/master=
-kube-vm1   Ready     <none>    8m        v1.8.4    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,dc=DC2,kubernetes.io/hostname=kube-vm1
+kubenode1   Ready     master    12m       v1.8.4    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,dc=DC1,kubernetes.io/hostname=kubenode1,node-role.kubernetes.io/master=
+kubenode2   Ready     <none>    8m        v1.8.4    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,dc=DC2,kubernetes.io/hostname=kubenode2
 </pre>
 
-# kubectl create namespace c7a
+# kubectl create namespace db
 
-#git clone https://github.com/ideagw/multi-dc-c7a-k8s.git
+#git clone https://github.com/ideagw/cassandra-multi-dc-db-k8s.git
 
 cd mu*
 
-# kubectl -n c7a create -f service.yaml
+# kubectl -n db create -f service.yaml
 <pre>
 service "cassandraa" created
 service "cassandrab" created
 </pre>
 
-# kubectl -n c7a create -f local_pvs.yaml
+# kubectl -n db create -f local_pvs.yaml
 <pre>
 persistentvolume "cassandra-data-a" created
 persistentvolume "cassandra-data-b" created
@@ -44,42 +44,42 @@ persistentvolume "cassandra-data-e" created
 persistentvolume "cassandra-data-f" created
 </pre>
 
-# kubectl -n c7a create -f statefulset-a.yaml
+# kubectl -n db create -f statefulset-a.yaml
 <pre>
 statefulset "cassandraa" created
 </pre>
 
-# kubectl -n c7a get pods
+# kubectl -n db get pods
 <pre>
 NAME           READY     STATUS              RESTARTS   AGE
 cassandraa-0   0/1       ContainerCreating   0          59s
 </pre>
 
-# kubectl -n c7a describe pod cassandraa-0
+# kubectl -n db describe pod cassandraa-0
 
-# kubectl -n c7a get pods
+# kubectl -n db get pods
 <pre>
 NAME           READY     STATUS    RESTARTS   AGE
 cassandraa-0   1/1       Running   0          1m
 </pre>
 
-# kubectl -n c7a create -f statefulset-b.yaml
+# kubectl -n db create -f statefulset-b.yaml
 
-# kubectl -n c7a get statefulsets
+# kubectl -n db get statefulsets
 <pre>
 NAME         DESIRED   CURRENT   AGE
 cassandraa   1         1         3m
 cassandrab   1         1         23s
 </pre>
 
-# kubectl -n c7a get pods -o wide
+# kubectl -n db get pods -o wide
 <pre>
 NAME           READY     STATUS    RESTARTS   AGE       IP          NODE
-cassandraa-0   1/1       Running   0          7m        10.32.0.3   kube-vm0
-cassandrab-0   1/1       Running   0          7s        10.44.0.1   kube-vm1
+cassandraa-0   1/1       Running   0          7m        10.32.0.3   kubenode1
+cassandrab-0   1/1       Running   0          7s        10.44.0.1   kubenode2
 </pre>
 
-# kubectl -n c7a exec -ti cassandraa-0 -- nodetool status
+# kubectl -n db exec -ti cassandraa-0 -- nodetool status
 <pre>
 Datacenter: DC1
 ===============
@@ -95,35 +95,35 @@ Status=Up/Down
 UN  10.44.0.1  106.36 KiB  256          100.0%            bc58184e-bc4a-4214-9e31-98328ea6f0b3  Rack1
 </pre>
 
-# kubectl -n c7a logs cassandraa-0
+# kubectl -n db logs cassandraa-0
 
-# kubectl -n c7a scale --replicas=3 statefulset/cassandraa
+# kubectl -n db scale --replicas=3 statefulset/cassandraa
 statefulset "cassandraa" scaled
 
-# kubectl -n c7a get pods -o wide
+# kubectl -n db get pods -o wide
 <pre>
 NAME           READY     STATUS    RESTARTS   AGE       IP          NODE
-cassandraa-0   1/1       Running   0          13m       10.32.0.3   kube-vm0
-cassandraa-1   1/1       Running   0          15s       10.32.0.4   kube-vm0
-cassandraa-2   1/1       Running   0          11s       10.32.0.5   kube-vm0
-cassandrab-0   1/1       Running   0          6m        10.44.0.1   kube-vm1
+cassandraa-0   1/1       Running   0          13m       10.32.0.3   kubenode1
+cassandraa-1   1/1       Running   0          15s       10.32.0.4   kubenode1
+cassandraa-2   1/1       Running   0          11s       10.32.0.5   kubenode1
+cassandrab-0   1/1       Running   0          6m        10.44.0.1   kubenode2
 </pre>
 
-# kubectl -n c7a scale --replicas=3 statefulset/cassandrab
+# kubectl -n db scale --replicas=3 statefulset/cassandrab
 statefulset "cassandrab" scaled
 
-# kubectl -n c7a get pods -o wide
+# kubectl -n db get pods -o wide
 <pre>
 NAME           READY     STATUS    RESTARTS   AGE       IP          NODE
-cassandraa-0   1/1       Running   0          15m       10.32.0.3   kube-vm0
-cassandraa-1   1/1       Running   0          1m        10.32.0.4   kube-vm0
-cassandraa-2   1/1       Running   2          1m        10.32.0.5   kube-vm0
-cassandrab-0   1/1       Running   0          8m        10.44.0.1   kube-vm1
-cassandrab-1   1/1       Running   0          53s       10.44.0.2   kube-vm1
-cassandrab-2   1/1       Running   0          49s       10.44.0.3   kube-vm1
+cassandraa-0   1/1       Running   0          15m       10.32.0.3   kubenode1
+cassandraa-1   1/1       Running   0          1m        10.32.0.4   kubenode1
+cassandraa-2   1/1       Running   2          1m        10.32.0.5   kubenode1
+cassandrab-0   1/1       Running   0          8m        10.44.0.1   kubenode2
+cassandrab-1   1/1       Running   0          53s       10.44.0.2   kubenode2
+cassandrab-2   1/1       Running   0          49s       10.44.0.3   kubenode2
 </pre>
 
-# kubectl -n c7a exec -ti cassandraa-0 -- nodetool status
+# kubectl -n db exec -ti cassandraa-0 -- nodetool status
 <pre>
 Datacenter: DC1
 ===============
@@ -143,14 +143,14 @@ UN  10.44.0.2  103.29 KiB  256          32.3%             0292512e-f698-458b-b28
 UN  10.44.0.3  84.25 KiB  256          32.9%             254ce3d5-455a-4176-a8c1-0468ba8baefe  Rack1
 </pre>
 
-# kubectl -n c7a get ep
+# kubectl -n db get ep
 <pre>
 NAME         ENDPOINTS                                      AGE
 cassandraa   10.32.0.3:9042,10.32.0.4:9042,10.32.0.5:9042   2m
 cassandrab   10.44.0.1:9042,10.44.0.2:9042,10.44.0.3:9042   2m
 </pre>
 
-# kubectl -n c7a get pvc
+# kubectl -n db get pvc
 <pre>
 NAME                          STATUS    VOLUME             CAPACITY   ACCESS MODES   STORAGECLASS   AGE
 cassandra-data-cassandraa-0   Bound     cassandra-data-a   10Gi       RWO                           21m
@@ -161,7 +161,7 @@ cassandra-data-cassandrab-1   Bound     cassandra-data-c   10Gi       RWO       
 cassandra-data-cassandrab-2   Bound     cassandra-data-e   10Gi       RWO                           6m
 </pre>
 
-# kubectl -n c7a exec -ti cassandraa-0 -- cqlsh
+# kubectl -n db exec -ti cassandraa-0 -- cqlsh
 <pre>
 Connected to Cassandra at 127.0.0.1:9042.
 [cqlsh 5.0.1 | Cassandra 3.11.1 | CQL spec 3.4.4 | Native protocol v4]
@@ -193,10 +193,10 @@ cqlsh:hr_keyspace> select * from employee;
       3 |        Austin |      Bob | 9848022330 |   45000
 
 cqlsh:hr_keyspace> quit;
-root@kube-vm0:/home/ubuntu/multi-dc-c7a-k8s# 
-root@kube-vm0:/home/ubuntu/multi-dc-c7a-k8s# 
-root@kube-vm0:/home/ubuntu/multi-dc-c7a-k8s# 
-root@kube-vm0:/home/ubuntu/multi-dc-c7a-k8s# kubectl -n c7a exec -ti cassandrab-1 -- cqlsh
+root@kubenode1:/home/ubuntu/multi-dc-db-k8s# 
+root@kubenode1:/home/ubuntu/multi-dc-db-k8s# 
+root@kubenode1:/home/ubuntu/multi-dc-db-k8s# 
+root@kubenode1:/home/ubuntu/multi-dc-db-k8s# kubectl -n db exec -ti cassandrab-1 -- cqlsh
 Connected to Cassandra at 127.0.0.1:9042.
 [cqlsh 5.0.1 | Cassandra 3.11.1 | CQL spec 3.4.4 | Native protocol v4]
 Use HELP for help.
@@ -219,10 +219,10 @@ cqlsh:hr_keyspace>
 
 </pre>
 # Simulate site failure
-# kubectl -n c7a delete statefulset cassandraa
+# kubectl -n db delete statefulset cassandraa
 statefulset "cassandraa" deleted
 
-# kubectl -n c7a exec -ti cassandrab-1 -- cqlsh
+# kubectl -n db exec -ti cassandrab-1 -- cqlsh
 <pre>
 Connected to Cassandra at 127.0.0.1:9042.
 [cqlsh 5.0.1 | Cassandra 3.11.1 | CQL spec 3.4.4 | Native protocol v4]
@@ -241,10 +241,10 @@ cqlsh:hr_keyspace> select * from employee;
 cqlsh:hr_keyspace> quit;
 </pre>
 
-# kubectl -n c7a get pods -o wide
+# kubectl -n db get pods -o wide
 <pre>
 NAME           READY     STATUS    RESTARTS   AGE       IP          NODE
-cassandrab-0   1/1       Running   0          1h        10.44.0.1   kube-vm1
-cassandrab-1   1/1       Running   0          1h        10.44.0.2   kube-vm1
-cassandrab-2   1/1       Running   0          1h        10.44.0.3   kube-vm1
+cassandrab-0   1/1       Running   0          1h        10.44.0.1   kubenode2
+cassandrab-1   1/1       Running   0          1h        10.44.0.2   kubenode2
+cassandrab-2   1/1       Running   0          1h        10.44.0.3   kubenode2
 </pre>
