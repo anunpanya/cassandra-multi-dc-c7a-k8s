@@ -24,7 +24,7 @@ kubenode2   Ready     <none>    8m        v1.8.4    beta.kubernetes.io/arch=amd6
 
 # kubectl create namespace db
 
-#git clone https://github.com/ideagw/cassandra-multi-dc-db-k8s.git
+#git clone https://github.com/anunpanya/cassandra-multi-dc-db-k8s.git
 
 cd mu*
 
